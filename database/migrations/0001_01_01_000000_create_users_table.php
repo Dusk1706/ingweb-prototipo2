@@ -15,6 +15,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->primary();
             $table->string('password');
+            $table->string('ultimo_acceso')->nullable();
+            $table->integer('numero_intentos')->default(0);
+            $table->boolean('bloqueado')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });
