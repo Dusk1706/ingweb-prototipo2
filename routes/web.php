@@ -20,3 +20,6 @@ Route::post('login', [UsuarioController::class, 'IniciarSesion']);
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::post('logout', [UsuarioController::class, 'destroy'])
+->name('logout');
