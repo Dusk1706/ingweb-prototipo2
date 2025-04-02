@@ -49,8 +49,6 @@ public function getUsuarioAuth($Correo){
 }
 
 public function crearUsuario($nombre,$correo,$nip){
-
-
     $user = User::create([
         
         'name' => $nombre,

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Hash;
 use Illuminate\Support\Facades\Auth;
+use Log;
 
 class Modelo
 {
@@ -41,6 +42,11 @@ class Modelo
 
         } catch (\Exception $e) {
             $this->baseDatos->cancelarTransaccion();
+            Log::error('Error al registrar usuario : ' . $e->getMessage(), [
+                'nombre' => $nombre,
+                'correo' => $correo,
+                'nip' => $nip
+            ]);
             return [
                 'valido' => false,
                 'message' => 'Error al iniciar la transacción'
