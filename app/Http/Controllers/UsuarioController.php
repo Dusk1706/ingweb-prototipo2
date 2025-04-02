@@ -11,9 +11,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use App\Models\Modelo;
 
 class UsuarioController extends Controller
 {
+    private $modelo;
+    public function __construct()
+    {
+        $this->modelo = Modelo::getInstancia();
+    }
     public function VistaRegistro(): View
     {
         return view('auth.register');
@@ -24,24 +30,31 @@ class UsuarioController extends Controller
         return view('auth.login');
     }
 
-    
-    
+
+
     public function IniciarSesion(Request $request): RedirectResponse
     {
+
         $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::attempt($request->only('email', 'password'))) {
-            return redirect(route('welcome', absolute: false));
-        }
+        $resultado = $this->modelo->autenticar($request->email, $request->password);
 
-        return back()->withErrors([
-            'email' => 'Las credenciales proporcionadas son incorrectas.',
-        ]);
+        if (!$resultado['valido']) {
+            return back()->withErrors([
+                'email' => $resultado['message'],
+            ]);
+        }
+        
+        $usuario = $resultado['usuario'];
+        Auth::login($usuario);
+        return redirect(route('dashboard', absolute: false));
     }
-    
+
+
+
     public function RegitrarUsuario(Request $request): RedirectResponse
     {
         $request->validate([
@@ -52,25 +65,23 @@ class UsuarioController extends Controller
                 'email',
                 'max:255',
                 'regex:/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.com$/',
-                'unique:'.User::class,
+                'unique:' . User::class,
             ],
             'password' => [
                 'required',
                 'confirmed',
                 'min:8',
-                'regex:/^(?=.{8,})(?=.*[!@#$%^&*(),.?":{}|<>])[A-Z].*$/'
+               // 'regex:/^(?=.{8,})(?=.*[!@#$%^&*(),.?":{}|<>])[A-Z].*$/'
             ],
         ]);
+        $resultado = $this->modelo->registrarUsuario($request->name, $request->email, $request->password);
+        if (!$resultado['valido']) {
+            return back()->withErrors([
+                'email' => $resultado['message'],
+            ]);
+        }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password,
-        ]);
-
-        event(new Registered($user));
-
-        Auth::login($user);
+        Auth::login($resultado['usuario']);
 
         return redirect(route('dashboard', absolute: false));
     }

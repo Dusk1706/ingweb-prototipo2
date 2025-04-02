@@ -17,3 +17,6 @@ Route::get('login', [UsuarioController::class, 'VistaLogin'])
 
 Route::post('login', [UsuarioController::class, 'IniciarSesion']);
 
+Route::get('/dashboard', function () {
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');

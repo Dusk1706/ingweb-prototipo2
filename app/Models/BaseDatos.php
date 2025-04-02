@@ -44,4 +44,21 @@ public function getUsuario($Correo)
     );
 }
 
+public function getUsuarioAuth($Correo){
+    return User::where('email', $Correo)->first();
+}
+
+public function crearUsuario($nombre,$correo,$nip){
+
+
+    $user = User::create([
+        
+        'name' => $nombre,
+        'email' => $correo,
+        'password' => $nip,
+    ]);
+    return $user;
+}
+
+
 }
