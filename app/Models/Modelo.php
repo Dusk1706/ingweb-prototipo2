@@ -16,8 +16,8 @@ class Modelo
     public function autenticar($correo, $nip)
     {
         $this->baseDatos->iniciarTransaccion();
-
         $usuario = $this->baseDatos->getUsuario($correo);
+       
         if ($usuario == null) {
             return "error";
         }

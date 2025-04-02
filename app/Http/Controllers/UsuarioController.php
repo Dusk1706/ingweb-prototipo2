@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -14,17 +14,35 @@ use Illuminate\View\View;
 
 class UsuarioController extends Controller
 {
-    public function create(): View
+    public function VistaRegistro(): View
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    public function store(Request $request): RedirectResponse
+    public function VistaLogin(): View
+    {
+        return view('auth.login');
+    }
+
+    
+    
+    public function IniciarSesion(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        if (Auth::attempt($request->only('email', 'password'))) {
+            return redirect(route('welcome', absolute: false));
+        }
+
+        return back()->withErrors([
+            'email' => 'Las credenciales proporcionadas son incorrectas.',
+        ]);
+    }
+    
+    public function RegitrarUsuario(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
