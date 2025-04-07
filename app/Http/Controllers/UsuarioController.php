@@ -7,34 +7,30 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 use App\Models\Modelo;
+use Log;
 
 class UsuarioController extends Controller
 {
     private $modelo;
-    public function __construct()
-    {
+    public function __construct() {
         $this->modelo = Modelo::getInstancia();
     }
-    public function VistaRegistro(): View
-    {
+
+    public function VistaRegistro(): View {
         return view('auth.register');
     }
 
-    public function VistaLogin(): View
-    {
+    public function VistaLogin(): View {
         return view('auth.login');
     }
 
-
-
-    public function IniciarSesion(Request $request): RedirectResponse
-    {
-
+    public function IniciarSesion(Request $request): RedirectResponse  {
         $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -44,19 +40,15 @@ class UsuarioController extends Controller
 
         if (!$resultado['valido']) {
             return back()->withErrors([
-                'email' => $resultado['message'],
+                'error' => $resultado['message'],
             ]);
         }
         
-        $usuario = $resultado['usuario'];
-        Auth::login($usuario);
+        Auth::login($resultado['usuario']);
         return redirect(route('dashboard', absolute: false));
     }
 
-
-
-    public function RegitrarUsuario(Request $request): RedirectResponse
-    {
+    public function RegitrarUsuario(Request $request): RedirectResponse {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -64,34 +56,29 @@ class UsuarioController extends Controller
                 'string',
                 'email',
                 'max:255',
-                'regex:/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.com$/',
-                'unique:' . User::class,
+                'regex:/^[A-Za-z0-9._%+-]+@ranch.horse.com$/',
             ],
             'password' => [
                 'required',
-                'confirmed',
                 'min:8',
                // 'regex:/^(?=.{8,})(?=.*[!@#$%^&*(),.?":{}|<>])[A-Z].*$/'
             ],
         ]);
+
         $resultado = $this->modelo->registrarUsuario($request->name, $request->email, $request->password);
         if (!$resultado['valido']) {
             return back()->withErrors([
-                'email' => $resultado['message'],
+                'error' => $resultado['message'],
             ]);
         }
 
         Auth::login($resultado['usuario']);
-
         return redirect(route('dashboard', absolute: false));
     }
-    public function destroy(Request $request): RedirectResponse
+    public function logout(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-
-        $request->session()->regenerateToken();
+        $this->modelo->cerrarSesion($request->user());
+        Auth::logout();
 
         return redirect('/');
     }

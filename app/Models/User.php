@@ -18,7 +18,6 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $primaryKey = 'email';
     protected $fillable = [
         'name',
         'email',

@@ -11,8 +11,7 @@ class Modelo
     private static $instancia;
     private $baseDatos;
 
-    private function __construct()
-    {
+    private function __construct() {
         $this->baseDatos = new BaseDatos();
     }
 
@@ -25,13 +24,20 @@ class Modelo
         return self::$instancia;
     }
 
-    public function registrarUsuario($nombre, $correo, $nip)
-    {
+    public function registrarUsuario($nombre, $correo, $nip) {
         try {
 
             $this->baseDatos->iniciarTransaccion();
 
             $usuario = $this->baseDatos->crearUsuario($nombre, $correo, Hash::make($nip));
+
+            if ($usuario == null) {
+                $this->baseDatos->cancelarTransaccion();
+                return [
+                    'valido' => false,
+                    'message' => 'Error al registrar el usuario'
+                ];
+            }
 
             $this->baseDatos->finalizarTransaccion();
             return [
@@ -42,76 +48,88 @@ class Modelo
 
         } catch (\Exception $e) {
             $this->baseDatos->cancelarTransaccion();
-            Log::error('Error al registrar usuario : ' . $e->getMessage(), [
-                'nombre' => $nombre,
-                'correo' => $correo,
-                'nip' => $nip
-            ]);
             return [
                 'valido' => false,
-                'message' => 'Error al iniciar la transacción'
+                'message' => 'Error al registrar el usuario: ' . $e->getMessage()
             ];
         }
-
     }
 
-
-
-
-    public function autenticar($correo, $nip)
-    {
+    public function cerrarSesion($usuario) {
         $this->baseDatos->iniciarTransaccion();
-        $usuario = $this->baseDatos->getUsuario($correo);
+        $usuarioModel = $this->baseDatos->getUsuario($usuario->email);
 
-        if ($usuario == null) {
-            return [
-                'valido' => false,
-                'message' => 'Usuario no encontrado'
-            ];
-        }
-
-        if ($usuario->getBloqueado() == 1) {
-            if ($usuario->getUltimoAcceso() < 30) {
-                return [
-                    'valido' => false,
-                    'message' => 'Cuenta bloqueada, inténtelo más tarde'
-                ];
-            }
-            $usuario->setIntentos(0);
-            $usuario->setBloqueado(0);
-        }
-
-        $intentos = $usuario->getNumeroIntentos();
-        if (!Hash::check($nip, $usuario->getPassword())) {
-            $usuario->setIntentos($intentos + 1);
-
-            if ($usuario->getNumeroIntentos() >= 3) {
-                $usuario->setUltimoAcceso(time());
-                $usuario->setBloqueado(1);
-                return [
-                    'valido' => false,
-                    'message' => 'Cuenta bloqueada por demasiados intentos'
-                ];
-            }
-            return [
-                'valido' => false,
-                'message' => 'Credenciales incorrectas'
-            ];
-        }
-
-        if (Auth::check()) {
-            return [
-                'valido' => false,
-                'message' => 'Ya existe una sesión activa'
-            ];
-        }
-
+        $this->baseDatos->updateUsuario($usuarioModel);
         $this->baseDatos->finalizarTransaccion();
-        return [
-            'valido' => true,
-            'usuario' => $this->baseDatos->getUsuarioAuth($correo),
-            'message' => 'Autenticación exitosa'
-        ];
+    }
+
+    public function autenticar($correo, $nip) {
+        try {
+            $this->baseDatos->iniciarTransaccion();
+            $usuario = $this->baseDatos->getUsuario($correo);
+            
+            if ($usuario == null) {
+                $this->baseDatos->cancelarTransaccion();
+                return [
+                    'valido' => false,
+                    'message' => 'Usuario no encontrado'
+                ];
+            }
+
+            if ($this->baseDatos->existeSesion($usuario->getId())) {
+                $this->baseDatos->cancelarTransaccion();
+                return [
+                    'valido' => false,
+                    'message' => 'Usuario activo en otra sesion'
+                ];
+            }
+
+            if ($usuario->getBloqueado() == 1) {
+                $tiempoBloqueo = (time() - $usuario->getUltimoAcceso()) / 60;
+                if ($tiempoBloqueo < 1) {
+                    return [
+                        'valido' => false,
+                        'message' => 'Cuenta bloqueada, inténtelo más tarde'
+                    ];
+                }
+                $usuario->setIntentos(0);
+                $usuario->setBloqueado(0);
+
+                $this->baseDatos->updateUsuario($usuario);
+            }
+
+            $intentos = $usuario->getNumeroIntentos();
+            if (!Hash::check($nip, $usuario->getPassword())) {
+                $usuario->setIntentos($intentos + 1);
+
+                $mensaje = 'Correo o contraseña incorrectos';
+                if ($usuario->getNumeroIntentos() >= 3) {
+                    $usuario->setUltimoAcceso(time());
+                    $usuario->setBloqueado(1);
+                    
+                    $mensaje = 'Cuenta bloqueada por demasiados intentos';
+                }
+                
+                $this->baseDatos->updateUsuario($usuario);
+                
+                $this->baseDatos->finalizarTransaccion();
+                return [ 'valido' => false, 'message' => $mensaje ];
+            }
+
+            $this->baseDatos->finalizarTransaccion();
+            return [
+                'valido' => true,
+                'usuario' => $this->baseDatos->getUsuarioAuth($correo),
+                'message' => 'Autenticación exitosa'
+            ];
+        } catch (\Exception $e) {
+            $this->baseDatos->cancelarTransaccion();
+            Log::info('Error en la autenticación: ' . $e->getMessage());
+            return [
+                'valido' => false,
+                'message' => 'Error durante la autenticación: ' . $e->getMessage()
+            ];
+        }
     }
 
 }

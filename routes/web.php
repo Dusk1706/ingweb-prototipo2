@@ -7,19 +7,11 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-Route::get('register', [UsuarioController::class, 'VistaRegistro'])
-->name('register');
-
-Route::post('register', [UsuarioController::class, 'RegitrarUsuario']);
-
-Route::get('login', [UsuarioController::class, 'VistaLogin'])
-->name('login');
-
-Route::post('login', [UsuarioController::class, 'IniciarSesion']);
-
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::post('logout', [UsuarioController::class, 'destroy'])
-->name('logout');
+Route::post('logout', [UsuarioController::class, 'logout'])
+->name('logout')->middleware('auth');
+
+require __DIR__.'/auth.php';
