@@ -37,7 +37,7 @@ class Modelo
                     'message' => 'Error al registrar el usuario'
                 ];
             }
-            $this->baseDatos->crearSemaforoUsuario($usuario->getEmail());
+            $this->baseDatos->crearSemaforoUsuario($correo);
             $this->baseDatos->finalizarTransaccion();
             return [
                 'valido' => true,
@@ -89,6 +89,7 @@ class Modelo
                 $tiempoBloqueo = (time() - $usuario->getUltimoAcceso()) / 60;
                 $minutosBloqueado = 1;
                 if ($tiempoBloqueo < $minutosBloqueado) {
+                    $this->baseDatos->cancelarTransaccion();
                     return [
                         'valido' => false,
                         'message' => 'Cuenta bloqueada, inténtelo más tarde'
@@ -128,7 +129,6 @@ class Modelo
             ];
         } catch (\Exception $e) {
             $this->baseDatos->cancelarTransaccion();
-            Log::info('Error en la autenticación: ' . $e->getMessage());
             return [
                 'valido' => false,
                 'message' => 'Error durante la autenticación: ' . $e->getMessage()

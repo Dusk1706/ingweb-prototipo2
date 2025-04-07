@@ -71,10 +71,9 @@ class BaseDatos {
         return $sesion != null;
     }
 
-    public function crearSemaforoUsuario($idUsuario) {
+    public function crearSemaforoUsuario($correo) {
         DB::table('usuarios_concurrencia')->insert([
-            'user_id' => $idUsuario,
-            'semaforo' => false,
+            'email' => $correo,
         ]);
     }
 
