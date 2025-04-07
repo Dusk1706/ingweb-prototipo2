@@ -30,7 +30,6 @@ class Modelo
             $this->baseDatos->iniciarTransaccion();
 
             $usuario = $this->baseDatos->crearUsuario($nombre, $correo, Hash::make($nip));
-
             if ($usuario == null) {
                 $this->baseDatos->cancelarTransaccion();
                 return [
@@ -38,7 +37,7 @@ class Modelo
                     'message' => 'Error al registrar el usuario'
                 ];
             }
-
+            $this->baseDatos->crearSemaforoUsuario($usuario->getEmail());
             $this->baseDatos->finalizarTransaccion();
             return [
                 'valido' => true,
@@ -66,27 +65,30 @@ class Modelo
     public function autenticar($correo, $nip) {
         try {
             $this->baseDatos->iniciarTransaccion();
-            $usuario = $this->baseDatos->getUsuario($correo);
-            
-            if ($usuario == null) {
+            $semaforo = $this->baseDatos->iniciarSemaforoUsiario($correo);
+
+            if(!$semaforo)  {
                 $this->baseDatos->cancelarTransaccion();
                 return [
                     'valido' => false,
-                    'message' => 'Usuario no encontrado'
+                    'message' => 'Error al iniciar Sesion'
                 ];
             }
+            $usuario = $this->baseDatos->getUsuario($correo);
 
             if ($this->baseDatos->existeSesion($usuario->getId())) {
                 $this->baseDatos->cancelarTransaccion();
+
                 return [
                     'valido' => false,
                     'message' => 'Usuario activo en otra sesion'
                 ];
             }
 
-            if ($usuario->getBloqueado() == 1) {
+            if ($usuario->estaBloqueado()) {
                 $tiempoBloqueo = (time() - $usuario->getUltimoAcceso()) / 60;
-                if ($tiempoBloqueo < 1) {
+                $minutosBloqueado = 1;
+                if ($tiempoBloqueo < $minutosBloqueado) {
                     return [
                         'valido' => false,
                         'message' => 'Cuenta bloqueada, inténtelo más tarde'
@@ -94,14 +96,14 @@ class Modelo
                 }
                 $usuario->setIntentos(0);
                 $usuario->setBloqueado(0);
-
                 $this->baseDatos->updateUsuario($usuario);
             }
 
             $intentos = $usuario->getNumeroIntentos();
-            if (!Hash::check($nip, $usuario->getPassword())) {
+            $contraseñaCorrecta = Hash::check($nip, $usuario->getPassword());
+            
+            if (!$contraseñaCorrecta) {
                 $usuario->setIntentos($intentos + 1);
-
                 $mensaje = 'Correo o contraseña incorrectos';
                 if ($usuario->getNumeroIntentos() >= 3) {
                     $usuario->setUltimoAcceso(time());
@@ -115,6 +117,8 @@ class Modelo
                 $this->baseDatos->finalizarTransaccion();
                 return [ 'valido' => false, 'message' => $mensaje ];
             }
+            $usuario->setIntentos(0);
+            $this->baseDatos->updateUsuario($usuario);
 
             $this->baseDatos->finalizarTransaccion();
             return [

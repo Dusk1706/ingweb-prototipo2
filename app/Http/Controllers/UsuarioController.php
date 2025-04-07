@@ -61,7 +61,7 @@ class UsuarioController extends Controller
             'password' => [
                 'required',
                 'min:8',
-               // 'regex:/^(?=.{8,})(?=.*[!@#$%^&*(),.?":{}|<>])[A-Z].*$/'
+                'regex:/^[A-Z]{5}[A-Za-z0-9]*horse$/',
             ],
         ]);
 

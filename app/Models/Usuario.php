@@ -46,7 +46,7 @@ class Usuario
         return $this->numero_intentos;
     }
 
-    public function getBloqueado() {
+    public function estaBloqueado() {
         return $this->bloqueado;
     }
 

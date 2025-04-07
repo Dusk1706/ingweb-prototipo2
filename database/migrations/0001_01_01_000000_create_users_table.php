@@ -37,6 +37,10 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        Schema::create('usuarios_concurrencia', function (Blueprint $table) {
+            $table->string('email')->primary();
+        });
     }
 
     /**
@@ -47,5 +51,6 @@ return new class extends Migration
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('usuarios_concurrencia');
     }
 };
