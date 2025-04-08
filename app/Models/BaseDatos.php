@@ -17,10 +17,6 @@ class BaseDatos {
         return DB::rollBack();
     }
 
-    public function guardarObjeto($objeto) {
-        return $objeto->save();
-    }
-
     public function updateUsuario($usuario) {
         DB::table('users')->where('email', $usuario->getEmail())->update([
             'ultimo_acceso' => $usuario->getUltimoAcceso(),
@@ -34,7 +30,7 @@ class BaseDatos {
         $usuario = $this->getUsuarioAuth($Correo);
 
         if ($usuario == null) {
-            return null;//No exite el usuario con ese PK
+            return null;
         }
 
         return new Usuario(
@@ -71,10 +67,9 @@ class BaseDatos {
         return $sesion != null;
     }
 
-    public function crearSemaforoUsuario($idUsuario) {
+    public function crearSemaforoUsuario($correo) {
         DB::table('usuarios_concurrencia')->insert([
-            'user_id' => $idUsuario,
-            'semaforo' => false,
+            'email' => $correo,
         ]);
     }
 

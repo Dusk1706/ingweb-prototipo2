@@ -77,7 +77,6 @@ class UsuarioController extends Controller
     }
     public function logout(Request $request): RedirectResponse
     {
-        $this->modelo->cerrarSesion($request->user());
         Auth::logout();
 
         return redirect('/');
