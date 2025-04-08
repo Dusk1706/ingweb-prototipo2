@@ -28,8 +28,8 @@ class Modelo
         try {
 
             $this->baseDatos->iniciarTransaccion();
-
-            $usuario = $this->baseDatos->crearUsuario($nombre, $correo, Hash::make($nip));
+            $nipEncriptado = Hash::make($nip);
+            $usuario = $this->baseDatos->crearUsuario($nombre, $correo, $nipEncriptado);
             if ($usuario == null) {
                 $this->baseDatos->cancelarTransaccion();
                 return [
@@ -66,11 +66,15 @@ class Modelo
                     'message' => 'Error al iniciar Sesion'
                 ];
             }
+
             $usuario = $this->baseDatos->getUsuario($correo);
+            $intentos = $usuario->getNumeroIntentos();
 
             if ($this->baseDatos->existeSesion($usuario->getId())) {
                 $this->baseDatos->cancelarTransaccion();
-
+                $usuario->setIntentos($intentos + 1);
+                $this->baseDatos->updateUsuario($usuario);
+                $this->baseDatos->finalizarTransaccion();
                 return [
                     'valido' => false,
                     'message' => 'Usuario activo en otra sesion'
